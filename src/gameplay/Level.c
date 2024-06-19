@@ -1,3 +1,4 @@
+#define DEFINE_LVL_MGR
 #include "Level.h"
 
 static void LevelParser_ParseGraphics(
@@ -10,7 +11,7 @@ static void LevelParser_ParseGraphics(
     );
 
     if (!ptr) {
-        Engine_PushErrorFile("levels.xml", "Out of Memory!");
+        Engine_PushErrorFile("levels.xml", "We blew up trying to realloc the Graphics pointer!");
         return;
     }
 
@@ -60,7 +61,7 @@ static void LevelParser_ParseTreasurePoints(
         g->coinsPos,
         sizeof(SDL_FPoint) * (g->coinsLen+1));
     if (!ptr) {
-        Engine_PushErrorFile("levels.xml", "Out of Memory!");
+        Engine_PushErrorFile("levels.xml", "We blew up trying to realloc teasure points!");
         return;
     }
 
@@ -85,7 +86,7 @@ static void LevelParser_ParseSettings(
     );
 
     if (!ptr) {
-        Engine_PushErrorFile("levels.xml", "Out of Memory!");
+        Engine_PushErrorFile("levels.xml", "We blew up trying to realloc settings.");
         return;
     }
 
@@ -223,36 +224,41 @@ int LevelMgr_LoadLevels(const char* fileName) {
     }
 
     int done;
+    long file_len;
 
     char path[STR_PATH_BUFFER_SIZE];
-    sprintf(path, "%s\\%s", PATH_LEVEL, fileName);
-
-    char* buff = malloc(XML_BUFF_SIZE);
-    if (!buff) {
-        Engine_PushErrorFile(path, "Out of memory!");
-        return 0;
-    }
+    sprintf(path, "./%s/%s", PATH_LEVEL, fileName);
 
     FILE *fp = fopen(path, "r");
     if (!fp) {
-        Engine_PushErrorFile(path, "Не удалось открыть файл!");
+        Engine_PushErrorFile(path, "File doesn't exist!");
         return 0;
     }
+
+    fseek(fp, 0, SEEK_END);
+    file_len = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    char *buff;
+    buff = (char*)calloc(file_len, sizeof(char));
+    if (buff == NULL)
+    {
+        Engine_PushErrorFile(path, "Can't alloc size of file D:");
+        return 0;
+    }
+
+    fread(buff, sizeof(char), file_len, fp);
+    fclose(fp);
 
     XML_Parser parser = XML_ParserCreate(NULL);
     XML_SetElementHandler(parser, XML_StartElement, XML_EndElement);
 
-    do {
-        int len = (int)fread(buff, 1, sizeof(buff), fp);
-        done = len < sizeof(buff);
-        if (XML_Parse(parser, buff, len, done) == XML_STATUS_ERROR) {
-            Engine_PushErrorFile(path, XML_ErrorString(XML_GetErrorCode(parser)));
-            return 0;
-        }
-    } while(!done);
+    if (XML_Parse(parser, buff, file_len, done) == XML_STATUS_ERROR) {
+        Engine_PushErrorFile(path, XML_ErrorString(XML_GetErrorCode(parser)));
+        return 0;
+    }
 
     free(buff);
-    fclose(fp);
     XML_ParserFree(parser);
 
     if (!LevelMgr_LoadProgress())
@@ -378,7 +384,7 @@ int Level_Load(Level* level) {
 
     sprintf(
         path, 
-        "%s\\%s\\%s.jpg", 
+        "./%s/%s/%s.jpg", 
         PATH_LEVEL,
         levelMgr.graphics[level->graphicsID].id,
         levelMgr.graphics[level->graphicsID].textureFile
@@ -391,7 +397,7 @@ int Level_Load(Level* level) {
     if (!(strcmp(levelMgr.graphics[level->graphicsID].textureTopLayerFile, "none") == 0)) {
         sprintf(
             path, 
-            "%s\\%s\\%s.png", 
+            "./%s/%s/%s.png", 
             PATH_LEVEL,
             levelMgr.graphics[level->graphicsID].id,
             levelMgr.graphics[level->graphicsID].textureTopLayerFile
@@ -403,7 +409,7 @@ int Level_Load(Level* level) {
     
     sprintf(
         path, 
-        "%s\\%s\\%s.dat", 
+        "./%s/%s/%s.dat", 
         PATH_LEVEL,
         levelMgr.graphics[level->graphicsID].id,
         levelMgr.graphics[level->graphicsID].spiralFile
@@ -413,16 +419,17 @@ int Level_Load(Level* level) {
         return 0;
 
     fseek(file, 0x10, SEEK_SET);
-    long count;
-    fread(&count, sizeof(long), 1, file);
+    int32_t count;
+    fread(&count, sizeof(int32_t), 1, file);
     fseek(file, 0x14 + count * 10, SEEK_SET);
 
-    long c;
+    int32_t c;
     float cx, cy;
 
-    fread(&c, sizeof(long), 1, file);
+    fread(&c, sizeof(int32_t), 1, file);
     fread(&cx, sizeof(float), 1, file);
     fread(&cy, sizeof(float), 1, file);
+
 
     level->spiralStart.x = cx;
     level->spiralStart.y = cy;

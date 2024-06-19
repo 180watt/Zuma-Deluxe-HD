@@ -485,6 +485,7 @@ void DialogueBox_Update(DialogueBox* db) {
 }
 
 
+#define min(X,Y) ((X) < (Y) ? (X) : (Y))
 void DialogueBox_Draw(DialogueBox* db) {
 
     if (db->animation) {
@@ -685,8 +686,8 @@ void DialogueBox_UpdateOptions(DialogueBox* db) {
     }
 
     if (Slider_IsDragging(&db->sliders[0])) {
-        BASS_ChannelSetAttribute(engine.music, 
-            BASS_ATTRIB_VOL, engine.volMus);
+        int mus_vol = (int) (engine.volMus * 128); /* MIX_VOL_MAX */
+        Mix_VolumeMusic(mus_vol);
     }
 }
 

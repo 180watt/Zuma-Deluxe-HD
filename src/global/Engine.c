@@ -1,3 +1,4 @@
+#define DEFINE_ENGINE
 #include "Engine.h"
 
 // ==== Common ==== //
@@ -69,11 +70,19 @@ int Engine_Init() {
                             IMG_GetError());
         return 0;
     }
-
    
-    if (!BASS_Init(-1, MUSIC_FREQUENCY, BASS_DEVICE_STEREO, 0, NULL)) {
-        Engine_PushErrorCode("Bass.dll initialization error", 
-                                BASS_ErrorGetCode());
+    int audio_rate;
+    uint16_t audio_format;
+    int audio_channels;
+    int audio_buffers;
+
+    audio_rate = MIX_DEFAULT_FREQUENCY;
+    audio_format = MIX_DEFAULT_FORMAT;
+    audio_channels = MIX_DEFAULT_CHANNELS;
+    audio_buffers = 4096;
+
+    if (Mix_OpenAudio(audio_rate, audio_format, audio_channels, audio_buffers) < 0) {
+        SDL_Log("Couldn't open audio: %s\n", SDL_GetError());
         return 0;
     }
 
@@ -98,18 +107,22 @@ void Engine_Destroy() {
 
     /* Sound and music */
     for (int i = 0; i < engine.soundsLen; i++) 
-        BASS_SampleFree(engine.sounds[i]);
+        Mix_FreeChunk(engine.sounds[i]);
     free(engine.sounds);
 
     for (int i = 0; i < engine.soundsSfxLen; i++) 
-        BASS_StreamFree(engine.soundsSfx[i]);
+        Mix_FreeChunk(engine.sounds[i]);
     free(engine.soundsSfx);
 
+#if defined(_WIN64) || defined(__WIN32)
     BASS_MusicFree(engine.music);
+#endif
 
     SDL_Quit();
     IMG_Quit();
+#if defined(_WIN64) || defined(__WIN32)
     BASS_Free();
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -174,7 +187,11 @@ int Engine_TexturesLoad(const char** files, int n) {
 
     char path[STR_PATH_BUFFER_SIZE];
     for (int i = 0; i < n; i++) {
+#if defined(_WIN64) || defined(__WIN32)
         sprintf(path, "%s\\%s", TEXTURE_FOLDER, files[i]);
+#else
+        sprintf(path, "%s/%s", TEXTURE_FOLDER, files[i]);
+#endif
 
         engine.textures[i] = Engine_TextureLoad(path);
         if (!engine.textures[i]) 
@@ -213,14 +230,22 @@ Font* Engine_FontLoad(const char* fileName) {
     
     char path[STR_PATH_BUFFER_SIZE];
     
+#if defined(_WIN64) || defined(__WIN32)
     sprintf(path, "%s\\%s.png", FONT_FOLDER, fileName);
+#else
+    sprintf(path, "%s/%s.png", FONT_FOLDER, fileName);
+#endif
     font->texture = Engine_TextureLoad(path);
     if (!font->texture) {
         Engine_PushErrorFile(path, "");
         return NULL;
     }
 
+#if defined(_WIN64) || defined(__WIN32)
     sprintf(path, "%s\\%s.txt", FONT_FOLDER, fileName);
+#else
+    sprintf(path, "%s/%s.txt", FONT_FOLDER, fileName);
+#endif
     FILE* file = fopen(path, "r");
     if (!file) {
         Engine_PushErrorFile(path, "");
@@ -280,17 +305,19 @@ Font* Engine_FontLoad(const char* fileName) {
                 font->offsetList[i] = temp;
             }
         } else if (strcmp(str, "KerningPairs") == 0) {
-            font->kerningPairs = malloc(sizeof(font->kerningPairs) * n);
+            /* an array of 2 chars */
+            font->kerningPairs = malloc(sizeof(char) * 2 * n);
             if (!font->kerningPairs)
                 {errFlag = 1; break;}
 
             font->kerningPairsLen = n;
 
-            for (int i = 0; i < n; i++) {
+            for (int p_ = 0; p_ < n; p_++) {
                 char temp[2];
-                if (!fscanf(file, "%s", &temp)) {errFlag = 1; break;}        
-                font->kerningPairs[i].ch[0] = temp[0];
-                font->kerningPairs[i].ch[1] = temp[1];
+                if (!fscanf(file, "%2s", &temp)) {errFlag = 1; break;}        
+
+                font->kerningPairs[p_][0] = temp[0];
+                font->kerningPairs[p_][1] = temp[1];
             }
         } else if (strcmp(str, "KerningValues") == 0) {
             font->kerningValues = malloc(sizeof(int) * n);
@@ -415,9 +442,10 @@ void Engine_DrawTextScale(const char* str, int fontID, float scale, float x, flo
         for (int j = 0; j < font->charsLen; j++) {
             if (str[i] == font->chars[j]) {
                 for (int k = 0; k < font->kerningPairsLen; k++) {
-                    if (str[i] == font->kerningPairs[k].ch[0] && 
-                        str[i+1] == font->kerningPairs[k].ch[1])
-                            width += font->kerningValues[k];
+                    if (str[i] == font->kerningPairs[k][0] && 
+                        str[i+1] == font->kerningPairs[k][1])
+                            width += -1;
+                            //width += font->kerningValues[k];
                 }
 
                 SDL_FRect rect = {
@@ -473,9 +501,10 @@ int Engine_GetTextWidth(const char* str, int fontID) {
         for (int j = 0; j < font->charsLen; j++) {
             if (str[i] == font->chars[j]) {
                 for (int k = 0; k < font->kerningPairsLen; k++) {
-                    if (str[i] == font->kerningPairs[k].ch[0] && 
-                        str[i+1] == font->kerningPairs[k].ch[1])
-                            width += font->kerningValues[k];
+                    if (str[i] == font->kerningPairs[k][0] && 
+                        str[i+1] == font->kerningPairs[k][1])
+                            width += -1;
+                            //width += font->kerningValues[k];
                 }
 
                 width += font->widthList[j];
@@ -549,36 +578,40 @@ void Engine_DrawTextExtScale(const char* str, int fontID, float scale, SDL_Color
 
 int Engine_MusicLoad(const char* fileName) {
     char path[STR_PATH_BUFFER_SIZE];
-    sprintf(path, "%s\\%s", MUSIC_FOLDER, fileName);
+    sprintf(path, "./%s/%s", MUSIC_FOLDER, fileName);
 
-    engine.music = BASS_MusicLoad(
-        FALSE, path, 0, 0, BASS_SAMPLE_LOOP, MUSIC_FREQUENCY);
+    engine.music = Mix_LoadMUS(path);
+    if (engine.music == NULL)
+    {
+        SDL_Log("Couldn't load %s: %s\n", path, SDL_GetError());
+        return 0;
+    }
 
-    if (engine.music == 0) {
-        Engine_PushErrorFileCode(fileName, BASS_ErrorGetCode());
+    Mix_MusicType music_type = Mix_GetMusicType(engine.music);
+    if (music_type != MUS_MOD)
+    {
+        SDL_Log("Music file is not a mod file!\n");
         return 0;
     }
 
     return 1;
 }
 
-HSAMPLE Engine_SoundLoad(const char* fileName) {
-    HSAMPLE sound = BASS_SampleLoad(
-        FALSE, fileName, 0, 0, 65535, 0);
+Mix_Chunk* Engine_SoundLoad(const char* fileName) {
+    Mix_Chunk* sound_chunk = Mix_LoadWAV(fileName);
 
-    if (!sound) {
-        Engine_PushErrorFileCode(fileName, BASS_ErrorGetCode());
-        return 0;
-    }
+    if(sound_chunk == NULL)
+        Engine_PushError("Unable to load file!", fileName);
 
-    return sound;
+    return sound_chunk;
 }
 
 int Engine_SoundsLoad(const char** files, int n) {
     if (n <= 0)
         return 0;
 
-    engine.sounds = (HSAMPLE*)malloc(sizeof(HSAMPLE*) * n);
+    /* large array of sounds */
+    engine.sounds = malloc(sizeof(Mix_Chunk*) * n);
     if (!engine.sounds) {
         Engine_PushError("Critical Error!", "Out of memory.");
         return 0;
@@ -586,10 +619,14 @@ int Engine_SoundsLoad(const char** files, int n) {
 
     for (int i = 0; i < n; i++) {
         char path[STR_PATH_BUFFER_SIZE];
+#if defined(_WIN64) || defined(__WIN32)
         sprintf(path, "%s\\%s", SOUND_FOLDER, files[i]);
+#else
+        sprintf(path, "%s/%s", SOUND_FOLDER, files[i]);
+#endif
 
         engine.sounds[i] = Engine_SoundLoad(path);
-        if (!engine.sounds[i]) 
+        if (&engine.sounds[i] == NULL) 
             return 0;
     }
     engine.soundsLen = n;
@@ -597,25 +634,21 @@ int Engine_SoundsLoad(const char** files, int n) {
     return 1;
 }
 
-HSTREAM Engine_SoundSfxLoad(const char* fileName) {
-    HSTREAM sound = BASS_StreamCreateFile(
-        FALSE, fileName, 0, 0, 
-        BASS_STREAM_DECODE);
-    sound = BASS_FX_TempoCreate(sound, BASS_SAMPLE_FX);
+Mix_Chunk* Engine_SoundSfxLoad(const char* fileName) {
+    Mix_Chunk* sound_chunk = Mix_LoadWAV(fileName);
 
-    if (!sound) {
-        Engine_PushErrorFileCode(fileName, BASS_ErrorGetCode());
-        return 0;
-    }
+    if(sound_chunk == NULL)
+        Engine_PushError("Unable to load file!", fileName);
 
-    return sound;
+    return sound_chunk;
 }
 
 int Engine_SoundsSfxLoad(const char** files, int n) {
     if (n <= 0)
         return 0;
 
-    engine.soundsSfx = (HSTREAM*)malloc(sizeof(HSTREAM*) * n);
+    /* large array of sound effects */
+    engine.soundsSfx = malloc(sizeof(Mix_Chunk*) * n);
     if (!engine.soundsSfx) {
         Engine_PushError("Critical Error!", "Out of memory.");
         return 0;
@@ -623,8 +656,11 @@ int Engine_SoundsSfxLoad(const char** files, int n) {
 
     for (int i = 0; i < n; i++) {
         char path[STR_PATH_BUFFER_SIZE];
+#if defined(_WIN64) || defined(__WIN32)
         sprintf(path, "%s\\%s", SOUND_FOLDER, files[i]);
-
+#else
+        sprintf(path, "%s/%s", SOUND_FOLDER, files[i]);
+#endif
         engine.soundsSfx[i] = Engine_SoundSfxLoad(path);
         if (!engine.soundsSfx[i]) 
             return 0;
@@ -634,58 +670,60 @@ int Engine_SoundsSfxLoad(const char** files, int n) {
     return 1;
 }
 
-HSAMPLE Engine_GetSoundSample(int soundID) {
+Mix_Chunk* Engine_GetSoundSample(int soundID) {
     if (soundID < 0 || soundID >= engine.soundsLen)
-        return 0;
+        exit(-111);
 
     return engine.sounds[soundID];
 }
 
 void Engine_PlayMusic(int musicID) {
-    if (!BASS_ChannelIsActive(engine.music)) {
-        BASS_ChannelSetAttribute(engine.music, 
-            BASS_ATTRIB_VOL, engine.volMus);
-        BASS_ChannelPlay(engine.music, FALSE);
-    }
+    /* the mod file only has 1 track. */
+    /* XXX: This blocks any PlayMusic calls! */
+    Mix_FadeOutMusic(100);
 
-    BASS_ChannelSetPosition(
-        engine.music, 
-        MAKELONG(musicID, 0), 
-        BASS_POS_MUSIC_ORDER
-    );
+    int mus_vol = (int) (engine.volMus * 128); /* MIX_VOL_MAX */
+    Mix_VolumeMusic(mus_vol);
+
+    /* loop until stopped */
+    Mix_PlayMusic(engine.music, -1);
 }
 
 void Engine_StopMusic() {
-    BASS_ChannelStop(engine.music);
+    /* XXX: This blocks any PlayMusic calls! */
+    Mix_FadeOutMusic(500);
 }
 
 void Engine_PlaySound(int soundID) {
     if (soundID < 0 || soundID >= engine.soundsLen)
         return;
 
-    HCHANNEL ch = BASS_SampleGetChannel(
-        engine.sounds[soundID], FALSE);
+    /* TODO: This could be more performant! */
+    int snd_vol = (int) (engine.volSnd * 128); /* MIX_VOL_MAX */
+    Mix_VolumeChunk(engine.sounds[soundID], snd_vol);
 
-    BASS_ChannelSetAttribute(ch, BASS_ATTRIB_VOL, engine.volSnd);
-    BASS_ChannelPlay(ch, FALSE);
+    Mix_PlayChannel(-1, engine.sounds[soundID], 0);
 }
 
 void Engine_StopSound(int soundID) {
     if (soundID < 0 || soundID >= engine.soundsLen)
         return;
 
-    BASS_SampleStop(engine.sounds[soundID]);
+    return;
 }
 
 void Engine_PlaySoundSfxPitch(int soundID, float pitch) {
-    BASS_ChannelSetAttribute(engine.soundsSfx[soundID], 
-        BASS_ATTRIB_TEMPO_PITCH, pitch);
-    BASS_ChannelSetAttribute(engine.soundsSfx[soundID], BASS_ATTRIB_VOL, engine.volSnd);
-    BASS_ChannelPlay(engine.soundsSfx[soundID], TRUE);
+    /* TODO: This could be more performant! */
+    int snd_vol = (int) (engine.volSnd * 128); /* MIX_VOL_MAX */
+    Mix_VolumeChunk(engine.sounds[soundID], snd_vol);
+
+    /* XXX: Change pitch! */
+    Mix_PlayChannel(-1, engine.sounds[soundID], 0);
+
 }
 
 void Engine_StopSoundSfx(int soundID) {
-    BASS_ChannelStop(engine.soundsSfx[soundID]);
+    return;
 }
 
 /////////////////////////////////////////////////////////////////////////

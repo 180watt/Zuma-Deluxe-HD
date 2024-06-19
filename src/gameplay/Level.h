@@ -9,7 +9,7 @@
 #include "../global/Enums.h"
 
 #define PATH_LEVEL "levels"
-#define STAGE_COUNT 1
+#define STAGE_COUNT 12
 #define BUFF_SIZE   48
 
 #define XML_BUFF_SIZE 32678
@@ -76,6 +76,8 @@ typedef struct _Stage {
     Level* levels;
 } Stage;
 
+/* compat for modern (?) compilers. */
+#ifdef DEFINE_LVL_MGR
 struct {
     int settingsLen;
     LevelSettings* settings;
@@ -89,6 +91,23 @@ struct {
     int survivalLevelsLen;
     Level* survivalLevels;
 } levelMgr;
+int xmlDepth;
+#else
+extern struct {
+    int settingsLen;
+    LevelSettings* settings;
+    int graphicsLen;
+    LevelGraphics* graphics;
+
+    unsigned int bestScore[LEVELS_COUNT][4];
+    unsigned int bestTime[LEVELS_COUNT][4];
+
+    Stage stages[STAGE_COUNT];
+    int survivalLevelsLen;
+    Level* survivalLevels;
+} levelMgr;
+extern int xmlDepth;
+#endif
 
 int LevelMgr_LoadLevels(const char*);
 int LevelMgr_SaveProgress();
@@ -99,7 +118,6 @@ LevelGraphics* LevelMgr_GetLevelGraphics(Level* lv);
 LevelSettings* LevelMgr_GetLevelSettings(Level* lv, int settingID);
 int LevelMgr_Free();
 
-int xmlDepth;
 void XML_StartElement(void *data, const char *element, const char **attribute);
 void XML_EndElement(void *data, const char *element);
 

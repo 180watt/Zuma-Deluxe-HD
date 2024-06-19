@@ -1,5 +1,7 @@
 #include "BallChain.h"
 
+static float u_x;
+
 void Ball_Init(Ball* ball, float pos, float x, float y, char isPusher, 
 	char color, char bonus) {
 	ball->pos = pos;
@@ -370,8 +372,8 @@ void BallChain_Update(BallChain* ballChain, SpiralDot* spiral, int spiralLen, in
 			ball->drawPrority = spiral[j].t2;
 		}
 
-		xx = lerp(xx, xx + spiral[j].dx * engine.scale_x, modff(ball->pos, NULL));
-		yy = lerp(yy, yy + spiral[j].dy * engine.scale_x, modff(ball->pos, NULL));
+		xx = lerp(xx, xx + spiral[j].dx * engine.scale_x, modff(ball->pos, &u_x));
+		yy = lerp(yy, yy + spiral[j].dy * engine.scale_x, modff(ball->pos, &u_x));
 
 		ball->x = xx;
 		ball->y = yy;

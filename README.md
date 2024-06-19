@@ -1,4 +1,8 @@
 # Zuma-Deluxe-HD
+## fork info.
+Only tested to work on FreeBSD with clang. Further more, you MUST compile on debug because of UB with higher optimization levels.
+(YES, I am looking into it.)
+
 A remake of the legendary 2003 PopCap game with improved textures and support for 16:9 aspect ratio. Made by me and [s4lat](https://github.com/s4lat).
 
 ![preview](https://user-images.githubusercontent.com/52833080/162574925-d6c9f657-c2e4-43e3-860d-412e60f14834.png)

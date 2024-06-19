@@ -4,14 +4,14 @@
 #define SDL_MAIN_HANDLED
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_Image.h>
-#include <bass.h>
-#include <bass_fx.h>
+#include <SDL2/SDL_mixer.h>
+#include <SDL2/SDL_image.h>
 #include <stdio.h>
 #include <stdbool.h>
 
 #define STR_ERR_BUFFER_SIZE 128
-#define STR_PATH_BUFFER_SIZE 48
+// Why was this so small LOL
+#define STR_PATH_BUFFER_SIZE 256
 
 #define TEXTURE_FOLDER "images"
 #define MUSIC_FOLDER "music"
@@ -32,10 +32,13 @@ typedef struct _Font {
 	SDL_Point* offsetList;
 
 	int kerningPairsLen;
-	struct { char ch[2]; } *kerningPairs;
+
+    char (*kerningPairs)[2];
 	int* kerningValues;
 } Font;
 
+/* compat for modern (?) compilers. */
+#ifdef DEFINE_ENGINE
 struct {
     /* Graphics */
     SDL_Window* 	win;
@@ -55,15 +58,49 @@ struct {
 	
 
     /* Sound and Music */
-	float 			volMus;
-	float 			volSnd;
+	float             volMus;
+	float             volSnd;
 
-    HMUSIC 			music;
+    Mix_Music*       music;
+
 	unsigned int 	soundsLen;
-	HSAMPLE* 		sounds;
+	Mix_Chunk** 	sounds;
+
 	unsigned int 	soundsSfxLen;
-	HSTREAM*		soundsSfx;
+	Mix_Chunk**		soundsSfx;
 } engine;
+#else
+extern struct {
+    /* Graphics */
+    SDL_Window* 	win;
+	SDL_Renderer* 	render;
+	SDL_Texture** 	textures;
+	unsigned int 	texturesLen;
+
+	float 			scale_x;
+	float 			scale_y;
+
+	Font** 			fonts;
+	unsigned int 	fontsLen;
+
+	bool fullScr;
+
+	/* Scores */
+	
+
+    /* Sound and Music */
+	float             volMus;
+	float             volSnd;
+
+    Mix_Music*       music;
+
+	unsigned int 	soundsLen;
+	Mix_Chunk** 	sounds;
+
+	unsigned int 	soundsSfxLen;
+	Mix_Chunk**		soundsSfx;
+} engine;
+#endif
 
 void Engine_PushError(const char*, const char*);
 void Engine_PushErrorCode(const char*, int);
@@ -102,11 +139,11 @@ void Engine_DrawTextExtScale(const char* str, int fontID,
 /* === Sound and Music === */
 int Engine_MusicLoad(const char*);
 
-HSAMPLE Engine_SoundLoad(const char*);
-HSTREAM Engine_SoundSfxLoad(const char*);
+Mix_Chunk* Engine_SoundLoad(const char*);
+Mix_Chunk* Engine_SoundSfxLoad(const char*);
 int Engine_SoundsLoad(const char**, int);
 int Engine_SoundsSfxLoad(const char**, int);
-HSAMPLE Engine_GetSoundSample(int);
+Mix_Chunk* Engine_GetSoundSample(int);
 
 void Engine_PlayMusic(int);
 void Engine_StopMusic();

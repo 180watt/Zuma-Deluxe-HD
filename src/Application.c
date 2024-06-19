@@ -48,7 +48,11 @@ static int ApplicationZuma_LoadResources(void) {
 
 
 static int ApplicationZuma_ShowStartupImage(void) {
+#if defined(_WIN64) || defined(__WIN32)
     SDL_Texture* texDisc = Engine_TextureLoad("images\\disclaimer.jpg");
+#else
+    SDL_Texture* texDisc = Engine_TextureLoad("./images/disclaimer.jpg");
+#endif
     if (!texDisc)
         return 10;
 
