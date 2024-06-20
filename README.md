@@ -1,12 +1,15 @@
-# Zuma-Deluxe-HD
-## fork info.
-Only tested to work on FreeBSD with clang. Further more, you MUST compile on debug because of UB with higher optimization levels.
-(YES, I am looking into it.)
+# Zuma-Deluxe-HD-24
+
+## Fork Info
+This should compile on any reasonable platform. (OK, probably not windows, but if that's the case- please, report a bug.)
+Anyhoo, you'll probably still need to change the `CMakeLists.txt` file to search in the proper paths for your system.
+With the transfer to `SDL_mixer`, some things have been lost. Namely, the fact that `SDL_mixer` can only play the first
+track of the "OST", so that's the music for the whole game. (Looking into this.) Secondly, `SDL_mixer` doesn't support pitch
+shifting natively, so until I stop being lazy, we don't have pitch shifting either.
 
 A remake of the legendary 2003 PopCap game with improved textures and support for 16:9 aspect ratio. Made by me and [s4lat](https://github.com/s4lat).
 
 ![preview](https://user-images.githubusercontent.com/52833080/162574925-d6c9f657-c2e4-43e3-860d-412e60f14834.png)
-
 
 ## [Gameplay video on YouTube](https://www.youtube.com/watch?v=VZYsNUUAozM&ab_channel=GalaxyShad)
 
@@ -19,18 +22,17 @@ A remake of the legendary 2003 PopCap game with improved textures and support fo
 
 ## ⛓️ Dependencies
 * [SDL2 	   2.26.5](https://www.libsdl.org)
-* [SDL2_Image 	2.6.3](https://www.libsdl.org/projects/SDL_image)
+* [SDL2_image 	2.6.3](https://www.libsdl.org/projects/SDL_image)
+* SDL2_mixer
 * [Expat 		2.5.0](https://github.com/libexpat/libexpat)
-* [BASS and BASS FX](http://www.un4seen.com)
 
 ## 🛠️ Build via CMake
 ```
-CMake -G <your generator>
-```
-
-## 🛠️ Build via console
-```
-<your compiler> src\*.c -I include\ -o bin\Zuma.exe -lSDL2 -lSDL2main -lSDL2_Image -lBass -lBass_Fx -llibexpat -mwindows
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cd bin
+./ZumaHD
 ```
 
 ## 🔗 Sources used
