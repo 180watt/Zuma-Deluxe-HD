@@ -460,13 +460,13 @@ void Game_Draw(Game* game) {
         return;
     } 
     
-    if (!game->graphics->textureTopLayerFile) {
-        BallChain_Draw(&game->chain, false);
-    } else {
-        BallChain_Draw(&game->chain, false);
-        Level_DrawTopLayer(game->lvl);
-        BallChain_Draw(&game->chain, true);
-    }
+    /* clang correctly detected this will always be false. 
+     * if (!game->graphics->textureTopLayerFile)
+     */
+
+    BallChain_Draw(&game->chain, false);
+    Level_DrawTopLayer(game->lvl);
+    BallChain_Draw(&game->chain, true);
 
 
 

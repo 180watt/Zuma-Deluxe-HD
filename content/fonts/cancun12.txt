@@ -370,34 +370,30 @@ OffsetList 92
 1 0
 1 0
 0 0
-KerningPairs 154
+KerningPairs 150
 \A
 \a
 A\
-A"
-"AT"
-"AV"
-"AW"
-"AY"
-"At"
-"Av"
-"Aw"
-"Ay"
-"EW"
-"EY"
-"Ew"
-"Ey"
-"F
-"
-"F."
-"FA"
-"FL"
-"Fa"
-"Fl"
-"K-"
-"KO"
-"Ko"
-"L
+AT
+AV
+AW
+AY
+At
+Av
+Aw
+Ay
+EW
+EY
+Ew
+Ey
+F.
+FA
+FL
+Fa
+Fl
+K-
+KO
+Ko
 LT
 LV
 LW
@@ -525,12 +521,9 @@ ya
 yc
 yo
 yq
-KerningValues 153
+KerningValues 150
 -2
 -2
--1
--1
--1
 -1
 -1
 -1

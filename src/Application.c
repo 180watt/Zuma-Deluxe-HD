@@ -44,21 +44,21 @@ static int ApplicationZuma_LoadResources(void) {
 
     if (!LevelMgr_LoadLevels("levels.xml"))
         return 8;
+
+    return 0;
 }
 
 
 static int ApplicationZuma_ShowStartupImage(void) {
-#if defined(_WIN64) || defined(__WIN32)
-    SDL_Texture* texDisc = Engine_TextureLoad("images\\disclaimer.jpg");
-#else
-    SDL_Texture* texDisc = Engine_TextureLoad("./images/disclaimer.jpg");
-#endif
+    SDL_Texture* texDisc = Engine_TextureLoad("images/disclaimer.jpg");
     if (!texDisc)
         return 10;
 
     SDL_RenderCopy(engine.render, texDisc, NULL, NULL);
     SDL_RenderPresent(engine.render);
     SDL_Delay(2000);
+
+    return 0;
 }
 
 

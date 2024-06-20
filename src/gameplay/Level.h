@@ -116,7 +116,7 @@ Stage* LevelMgr_GetStage(int stageID);
 Level* LevelMgr_GetLevelFromStage(int stageID, int lvID);
 LevelGraphics* LevelMgr_GetLevelGraphics(Level* lv);
 LevelSettings* LevelMgr_GetLevelSettings(Level* lv, int settingID);
-int LevelMgr_Free();
+void LevelMgr_Free();
 
 void XML_StartElement(void *data, const char *element, const char **attribute);
 void XML_EndElement(void *data, const char *element);

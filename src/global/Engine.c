@@ -187,11 +187,7 @@ int Engine_TexturesLoad(const char** files, int n) {
 
     char path[STR_PATH_BUFFER_SIZE];
     for (int i = 0; i < n; i++) {
-#if defined(_WIN64) || defined(__WIN32)
-        sprintf(path, "%s\\%s", TEXTURE_FOLDER, files[i]);
-#else
         sprintf(path, "%s/%s", TEXTURE_FOLDER, files[i]);
-#endif
 
         engine.textures[i] = Engine_TextureLoad(path);
         if (!engine.textures[i]) 
@@ -230,22 +226,15 @@ Font* Engine_FontLoad(const char* fileName) {
     
     char path[STR_PATH_BUFFER_SIZE];
     
-#if defined(_WIN64) || defined(__WIN32)
-    sprintf(path, "%s\\%s.png", FONT_FOLDER, fileName);
-#else
     sprintf(path, "%s/%s.png", FONT_FOLDER, fileName);
-#endif
+
     font->texture = Engine_TextureLoad(path);
     if (!font->texture) {
         Engine_PushErrorFile(path, "");
         return NULL;
     }
 
-#if defined(_WIN64) || defined(__WIN32)
-    sprintf(path, "%s\\%s.txt", FONT_FOLDER, fileName);
-#else
     sprintf(path, "%s/%s.txt", FONT_FOLDER, fileName);
-#endif
     FILE* file = fopen(path, "r");
     if (!file) {
         Engine_PushErrorFile(path, "");
@@ -257,6 +246,7 @@ Font* Engine_FontLoad(const char* fileName) {
     char str[64];
 
     while(fscanf(file, "%s", str) != EOF) {
+
         if (!fscanf(file, "%d", &n))
             {errFlag = 1; break;}
 
@@ -314,8 +304,9 @@ Font* Engine_FontLoad(const char* fileName) {
 
             for (int p_ = 0; p_ < n; p_++) {
                 char temp[2];
-                if (!fscanf(file, "%2s", &temp)) {errFlag = 1; break;}        
-
+                temp[0] = fgetc(file); /* first */
+                temp[1] = fgetc(file); /* second */
+                fgetc(file);           /* discard newline */
                 font->kerningPairs[p_][0] = temp[0];
                 font->kerningPairs[p_][1] = temp[1];
             }
@@ -619,11 +610,7 @@ int Engine_SoundsLoad(const char** files, int n) {
 
     for (int i = 0; i < n; i++) {
         char path[STR_PATH_BUFFER_SIZE];
-#if defined(_WIN64) || defined(__WIN32)
-        sprintf(path, "%s\\%s", SOUND_FOLDER, files[i]);
-#else
         sprintf(path, "%s/%s", SOUND_FOLDER, files[i]);
-#endif
 
         engine.sounds[i] = Engine_SoundLoad(path);
         if (&engine.sounds[i] == NULL) 
@@ -833,7 +820,7 @@ int Engine_LoadSettings() {
         return 0;
     }
 
-    bool full = -1;
+    int full = -1;
     if (fscanf(file, "%d", &full) == 1 && full >= 0 && full <= 1) {
         engine.fullScr = full;
         if (engine.fullScr) {

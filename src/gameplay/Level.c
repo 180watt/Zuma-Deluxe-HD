@@ -216,8 +216,9 @@ int LevelMgr_LoadLevels(const char* fileName) {
     levelMgr.survivalLevels = NULL;
     levelMgr.survivalLevelsLen = 0;
 
-    for (int i = 0; i < 11; i++) {
-        for (int j = 0; j < 11; j++) {
+    for (int i = 0; i < 17; i++) {
+        /* we're in an array of 4 */
+        for (int j = 0; j < 3; j++) {
             levelMgr.bestScore[i][j] = 0;
             levelMgr.bestTime[i][j]  = 0;
         }
@@ -365,7 +366,7 @@ LevelSettings* LevelMgr_GetLevelSettings(Level* lv, int settingID) {
     return &levelMgr.settings[lv->settingsID[settingID]];
 }
 
-int LevelMgr_Free() {
+void LevelMgr_Free() {
     for (int i = 0; i < levelMgr.graphicsLen; i++)
         free(levelMgr.graphics[i].coinsPos);
 
